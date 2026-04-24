@@ -1,90 +1,111 @@
 # GitHub Actions
 
-**GitHub Actions** is a CI/CD tool that is built into GitHub. It allows you to **run workflows based on events that happen in your repository**. For example, you can run a workflow when a pull request is opened, or when a new commit is pushed to a branch.
+GitHub Actions is GitHub's built-in automation platform. In ML projects, you can use it to run tests before merging code, check formatting, build containers, pull versioned data, or trigger model-training jobs.
 
-It allows you to run tests, build your code, and deploy your application all from one place. It also has a lot of built-in integrations with other tools like Slack, Jira, and more.
+In this first lesson, you will create a small pull-request workflow. The example is intentionally simple: start with a Python function and a pytest check, then require that check before code can merge into `main`.
 
-For example you can automatically **run tests** before merging a pull request, or you can automatically **build a Docker image** when a new commit is pushed to a branch and then push it to a Docker registry. 
+## Workflow
 
-## How to use GitHub Actions
-
-Let's start simple. We'll create a **workflow** that runs a test when a pull request is opened.
-
-1. Create a **new repository** on GitHub
-2. Create a `requirements.txt` file with the following content:
-
-```
-pytest
-```
-
-3. Create a new file called `tests/test_calculator.py` and add the following code:
-
-```python
-from src.calculator import add
-import pytest
-
-def test_add():
-    assert add(1, 2) == 3
-    assert add(-2, 2) == 0
-    assert add(0, 0) == 0
+```mermaid
+flowchart TD
+    A["Open pull request"] --> B["GitHub Actions starts workflow"]
+    B --> C["Install Python dependencies"]
+    C --> D["Run pytest"]
+    D --> E{"Tests pass?"}
+    E -->|Yes| F["Review and merge"]
+    E -->|No| G["Fix branch and push again"]
 ```
 
-4. Create a new file called `.github/workflows/test.yml` and add the following code:
+## Create a Test Workflow
 
-```yaml
-on:
-  pull_request:
-    branches:
-      - main
+1. Create a new repository on GitHub, or use your fork of this repository.
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11.3'
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    - name: Run tests
-      run: |
-        python -m pytest
-```
+2. Create a `requirements.txt` file with pytest:
 
-5. Push your changes to GitHub into _main_
+   ```text
+   pytest
+   ```
 
-6. Go to the **Settings** tab in your repository and click on **Actions** -> **General**:
-    - Workflow permissions: `Read and write permissions`
-    - Check mark: `Allow GitHub Actions to create and approve pull requests`
-    - **Save**
+3. Create `src/calculator.py`:
 
-    ![](./images/action.png)
+   ```python
+   def add(a, b):
+       return a + b
+   ```
 
-7. In the **Settings** go to **Branches** -> `Add classic branch protection rule`:
-    - Branch name pattern: `main`
-    - Check mark: `Require a pull request before merging`
-      - Check mark: `Require approvals`
-    - Click on **Create**
+4. Create `tests/test_calculator.py`:
 
-    ![](./images/protection-rule.png)
+   ```python
+   from src.calculator import add
 
->The checks will run also without this but it is a good practice to require reviews before merging to main.
 
-8. Now create a **new branch**
+   def test_add():
+       assert add(1, 2) == 3
+       assert add(-2, 2) == 0
+       assert add(0, 0) == 0
+   ```
 
-9. Add a python file called `src/calculator.py` with the following code:
+5. Create `.github/workflows/test.yml`:
 
-```python
-def add(a, b):
-    return a + b
-```
+   ```yaml
+   name: Tests
 
-10. **Commit** your changes and **open a pull request** from your new branch to main. You should see the test running.
+   on:
+     pull_request:
+       branches:
+         - main
 
-    ![](./images/pr-check.png)
+   permissions:
+     contents: read
 
-Often there are some checks that will run next to pytest. For example, if you have a linter, it will run and check if your code is formatted correctly. One example is [Black](https://black.readthedocs.io/en/stable/integrations/github_actions.html). It has also extensions or plugins for many IDEs like VSCode, PyCharm, etc.
+   jobs:
+     test:
+       runs-on: ubuntu-latest
+       timeout-minutes: 10
+       steps:
+         - uses: actions/checkout@v6
+
+         - name: Set up Python
+           uses: actions/setup-python@v6
+           with:
+             python-version: "3.11.3"
+
+         - name: Install dependencies
+           run: |
+             python -m pip install --upgrade pip
+             python -m pip install -r requirements.txt
+
+         - name: Run tests
+           run: python -m pytest
+   ```
+
+6. Push these starter files to `main`.
+
+7. Go to **Branches > Add classic branch protection rule** and set:
+
+   - Branch name pattern: `main`
+   - Require a pull request before merging: checked
+   - Require approvals: checked
+   - Require status checks to pass before merging: checked
+
+   ![GitHub branch protection rule settings](./images/protection-rule.png)
+
+8. Create a new branch, change the calculator or test, commit, and open a pull request into `main`. You should see the workflow start automatically.
+
+   ![Pull request status check running in GitHub](./images/pr-check.png)
+
+## Interpret the Result
+
+The pull request check is a feedback gate. A passing check means the repository can recreate the test environment and run the test suite from scratch. A failing check means the branch needs another commit before it is ready to merge.
+
+The starter workflow only asks for `contents: read` because it only needs to check out the repository and run tests. Later, the CML workflow asks for write permissions because it needs to publish a pull-request comment.
+
+The `timeout-minutes` setting is a small safety guard: if a dependency install or test run gets stuck, GitHub stops the job instead of letting it run until the repository limit is reached.
+
+In a larger ML repo, this same pattern can run data validation, linting, model smoke tests, or training jobs. Later lessons extend this workflow with DVC and CML.
+
+## Practice
+
+- Add a `subtract(a, b)` function and a matching pytest test.
+- Push the branch and confirm the workflow runs again.
+- Break one assertion on purpose, observe the failure, then fix it with a new commit.
