@@ -1,88 +1,123 @@
+# CI/CD Workflow with CML
 
-# CI/CD workflow with CML
-
-## What is CI/CD?
-
-A good [article](https://resources.github.com/ci-cd/) about CI/CD from GitHub:
-
-Automation is a core principle for achieving DevOps/MLOps success and CI/CD is a critical component. **CI/CD comprises of continuous integration and continuous delivery or continuous deployment**. Put together, they form a **"CI/CD pipeline"** — a series of automated workflows that help DevOps teams cut down on manual tasks:
-
-- **Continuous integration (CI)** automatically builds, tests, and integrates code changes within a shared repository; then
-- **Continuous delivery (CD)** automatically delivers code changes to production-ready environments for approval; or
-- **Continuous deployment (CD)** automatically deploys code changes to customers directly.
-
-When someone says CI/CD, the "CD" they're referring to is usually **continuous delivery**, not continuous deployment. What's the difference? In a CI/CD pipeline that uses continuous delivery, automation pauses when developers push to production. A human—your operations, security, or compliance team—still needs to manually sign off before final release, adding more delays. On the other hand, **continuous deployment** automates the entire release process. Code changes are deployed to customers as soon as they pass all the required tests.
+Continuous integration asks, "Can this change be merged safely?" In machine learning, that question includes code, data access, training behavior, and metrics. [CML](https://cml.dev/) lets a GitHub Actions workflow post model results directly on a pull request so reviewers can inspect them before merging.
 
 ## CI/CD in Machine Learning
 
-In machine learning, the **CI/CD pipeline** is a bit different from the traditional software development pipeline. The main difference is that the CI/CD pipeline for machine learning is **not only about code, but also about data**. In the traditional software development pipeline, the code is the only thing that changes. In the machine learning pipeline, the data is also changing. The data is the input to the machine learning model, and the model is trained on the data. Therefore, the data is also a part of the CI/CD pipeline.
+Traditional CI often checks code only: install dependencies, run tests, and build the application. ML CI/CD usually has extra moving parts:
 
-For example, because you are tracking your **model performance** (topics of the following days), your model performance is changing over time. Therefore, you need to **retrain your model** with the new data. With CML, you can automate this process.
+- data can change independently from code;
+- training jobs need a repeatable way to fetch or recreate data;
+- model quality must be evaluated with metrics, not just successful execution;
+- experiment results should be visible to reviewers.
 
-## CI/CD with CML
+This repo combines DVC, MLflow, and CML to demonstrate that pattern.
 
-**Continuous Machine Learning (CML) is a CI/CD open-source library for machine learning**. It is built on top of GitHub Actions and allows you to automate your machine learning workflows. It is developed by _iterative.ai_. 
+```mermaid
+flowchart TD
+    A["Pull request opened"] --> B["GitHub Actions runner"]
+    B --> C["Download taxi data"]
+    C --> D["Train XGBoost model"]
+    D --> E["Log run to local MLflow"]
+    D --> F["Write metrics.txt"]
+    F --> G["CML comments on PR"]
+```
 
-Let's get started:
+## Training Script
 
-In **`train.py`** we are training a XGBoost Regressor on the Green Taxi Trip dataset. We are tracking the experiment with MLflow, registering the model and changing its stage to `Staging`. 
+[`src/train.py`](src/train.py) trains an XGBoost regressor on the Green Taxi Trip dataset. It:
 
-Also we added `argparse` to our code which allows us to pass the argument `--cml-run` or `--no-cml-run` to our code. If we pass `--cml-run` to our code, it will export the metrics as a txt file and also saves a residual plot which is created with Yellowbricks. This can be added to the **CML report**.
+- calculates trip duration from pickup and dropoff timestamps;
+- keeps trips between 1 and 60 minutes;
+- builds route and distance features;
+- trains a `DictVectorizer` plus `XGBRegressor` pipeline;
+- logs train and test RMSE to MLflow;
+- writes `metrics.txt` when run with `--cml-run`.
 
-Now we will create a **`cml.yml`** file as a **GitHub workflow**. This file will be used by CML to run our code. We run our `train.py` with the `--cml-run` argument and export a report with CML.  
+Run it locally after downloading the data and configuring MLflow:
 
-With this workflow we are **training the model on the GitHub server**, but there are also ways to train the model on a cloud service like AWS or GCP with [`cml runner`](https://cml.dev/doc/self-hosted-runners) (although this is not covered in this course). If you want to train bigger models you should investigate this option.
+```bash
+export MLFLOW_TRACKING_URI="sqlite:///mlflow.db"
+python src/train.py --cml-run
+cat metrics.txt
+```
 
-We will also **add DVC to load the data from the DVC remote** (so the GCS bucket). This will help us to automatically train the model with updated data.
+The local clean run should produce a `metrics.txt` file shaped like this:
 
-**This workflow will be triggered when we open a pull request to the main branch.** This is a good practice because we want to make sure that our code is working before we merge it to the main branch.
+```text
+# Training Metrics
+
+- RMSE on the train set: 4.7306
+- RMSE on the test set: 5.0584
+- Rows after filtering: 46307
+```
+
+The exact values can move slightly across library versions, but the train and test RMSE should be in the same range. A much lower train RMSE than test RMSE is a sign that the model may be overfitting. The row count confirms how many trips remained after filtering out trips shorter than 1 minute or longer than 60 minutes.
+
+## GitHub Actions Workflow
+
+The repository includes `.github/workflows/cml.yaml`. The workflow runs on pull requests to `main`, downloads the data, trains the model, and posts the metrics back to the pull request.
 
 ```yaml
 name: CML
-on: 
-    pull_request:
-        branches: 
-            - main
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
 jobs:
   train-and-report:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v3
-      - uses: iterative/setup-cml@v1
-      - name: Train model
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11.3"
+
+      - uses: iterative/setup-cml@v2.0.1
+
+      - name: Train model and publish report
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
-          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_URI: sqlite:///mlflow.db
           REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "$GOOGLE_APPLICATION_CREDENTIALS" | base64 --decode | jq > credentials.json
-          pip install -r requirements.txt
-          echo "Pulling data from GCS..."
-          dvc remote modify --local myremote \
-                    credentialpath './credentials.json'
-          dvc pull
-          echo "Training model..."
-          python src/train.py --cml_run
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          mkdir -p data
+          curl -L --fail -o data/green_tripdata_2025-01.parquet \
+            https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_2025-01.parquet
+          python src/train.py --cml-run
           cat metrics.txt >> report.md
-          cml comment create report.md 
-          rm credentials.json
+          cml comment create report.md
 ```
 
-You may notice that in this workflow there are **environment variables**. These are stored in the **secrets** of your GitHub repository. You can add these secrets by going to your repository and clicking on **Settings** > **Secrets and variables** > **Actions** > **New repository secret**. In this case we need the `GOOGLE_APPLICATION_CREDENTIALS` to access our GCP bucket and the `MLFLOW_TRACKING_URI` to track our experiment with MLflow.
+The workflow uses the built-in `GITHUB_TOKEN` through `REPO_TOKEN`, which CML uses to post the pull-request comment. You do not need to configure extra credentials for this local-first version.
 
-![](./images/add-secret.png)
+The `permissions` block keeps the token scoped to what this exercise needs: read the repository contents and write the CML report back to the pull request.
 
-- For the `GOOGLE_APPLICATION_CREDENTIALS` you can use the one we created in the previous markdown. Copy/pasting the content of a JSON is not recommended because it can cause formatting issues. Instead, you can **encode the JSON file as a base64 string and paste the result in the secret value field**. You can use the following command to encode the JSON file:
+The `timeout-minutes` setting keeps the pull-request check bounded. If the data download, dependency installation, or training step hangs, GitHub stops the job and surfaces the failure in the pull request.
 
-  ```bash
-  cat <path-to-json-file> | base64 | pbcopy
-  ```
+The workflow intentionally downloads the small teaching dataset during each pull-request run. That keeps the exercise self-contained and avoids requiring learners to configure external data infrastructure before they can see a CML report.
 
-  The pipe operator (`|`) sends the output of the `cat` command to the `base64` command, which encodes it as a base64 string. The `pbcopy` command copies the result to your clipboard. You can then paste the result in the secret value field. During the GitHub Actions workflow, the string is then decoded and written to a file again as you can see in the first `run` step of the workflow.
+## Interpret the CML Report
 
+The report is useful because it moves model feedback into the same place where code review happens. Reviewers should look for:
 
-- For the `MLFLOW_TRACKING_URI` you need to create a new secret and add the tracking URI of your MLflow server. In this case we are using the MLflow server from the previous days so start it up again and copy the tracking URI.
+- whether the workflow completed without download or training errors;
+- whether train and test RMSE are close enough to avoid obvious overfitting;
+- whether metric changes are expected for the branch;
+- whether the branch changed code, data metadata, or both.
 
-![](./images/secrets.png)
+## Practice
 
-Feel free to make a pull request and try this out!
+- Open a pull request that changes one training parameter, then compare the CML comment with the previous run.
+- Add one more metric to `metrics.txt`, such as the number of rows used after filtering.
+- Temporarily change the data URL and read the workflow failure message, then restore it.
