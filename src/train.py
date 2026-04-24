@@ -1,99 +1,142 @@
 import os
-import argparse
-import pandas as pd
+from pathlib import Path
+
+import click
 import mlflow
-from sklearn.model_selection import train_test_split
+import pandas as pd
+import xgboost as xgb
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.metrics import root_mean_squared_error
+from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
-import xgboost as xgb
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument(
-    "--cml_run", default=False, action=argparse.BooleanOptionalAction, required=True
-)
-args = parser.parse_args()
-cml_run = args.cml_run
-
-GOOGLE_APPLICATION_CREDENTIALS = "./credentials.json"
-
-MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI")
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = GOOGLE_APPLICATION_CREDENTIALS
+DATA_PATH = Path("data/green_tripdata_2025-01.parquet")
+FEATURES = ["PULocationID", "DOLocationID", "trip_distance"]
+TARGET = "trip_duration_minutes"
+MODEL_NAME = "green-taxi-trip-duration-xgb"
 
 
-# Set up the connection to MLflow
-mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
-
-# Setup the MLflow experiment
-mlflow.set_experiment("green-taxi-trip-duration-xgb")
-
-# Set variables
-features = ["PULocationID", "DOLocationID", "trip_distance"]
-target = "duration"
-model_name = "green-taxi-trip-duration-xgb"
-
-df = pd.read_parquet(f"data/green_tripdata_2025-01.parquet")
+def load_taxi_data():
+    if not DATA_PATH.exists():
+        raise click.ClickException(
+            f"Missing {DATA_PATH}. Download the taxi parquet file with the "
+            "command in the README Data Setup section before training."
+        )
+    return pd.read_parquet(DATA_PATH)
 
 
 def calculate_trip_duration_in_minutes(df):
-    df["trip_duration_minutes"] = (
+    df = df.copy()
+    df[TARGET] = (
         df["lpep_dropoff_datetime"] - df["lpep_pickup_datetime"]
     ).dt.total_seconds() / 60
-    df = df[(df["trip_duration_minutes"] >= 1) & (df["trip_duration_minutes"] <= 60)]
-    return df
+    # Keep a realistic training range and remove obvious trip-duration outliers.
+    return df[(df[TARGET] >= 1) & (df[TARGET] <= 60)]
 
 
 def preprocess(df):
-    df = df.copy()
     df = calculate_trip_duration_in_minutes(df)
     categorical_features = ["PULocationID", "DOLocationID"]
     df[categorical_features] = df[categorical_features].astype(str)
+    # Combining pickup and dropoff zones lets DictVectorizer treat each route as a category.
     df["trip_route"] = df["PULocationID"] + "_" + df["DOLocationID"]
-    df = df[["trip_route", "trip_distance", "trip_duration_minutes"]]
-    return df
+    return df[["trip_route", "trip_distance", TARGET]]
 
 
-df_processed = preprocess(df)
+def train_model(df):
+    df_processed = preprocess(df)
+    y = df_processed[TARGET]
+    X = df_processed.drop(columns=[TARGET])
 
-y = df_processed["trip_duration_minutes"]
-X = df_processed.drop(columns=["trip_duration_minutes"])
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, random_state=42, test_size=0.2
+    )
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, random_state=42, test_size=0.2
-)
+    X_train = X_train.to_dict(orient="records")
+    X_test = X_test.to_dict(orient="records")
 
-X_train = X_train.to_dict(orient="records")
-X_test = X_test.to_dict(orient="records")
-
-with mlflow.start_run() as run:
-    tags = {
-        "model": "xgboost pipeline",
-        "developer": "<your-name>",
-        "dataset": "green-taxi",
-        "features": features,
-        "target": target,
-    }
-    mlflow.set_tags(tags)
-    pipeline = make_pipeline(DictVectorizer(), xgb.XGBRegressor())
+    pipeline = make_pipeline(
+        DictVectorizer(),
+        xgb.XGBRegressor(n_estimators=100, random_state=42, n_jobs=-1),
+    )
     pipeline.fit(X_train, y_train)
 
     y_pred_train = pipeline.predict(X_train)
-    rmse_train = root_mean_squared_error(y_train, y_pred_train)
-    mlflow.log_metric("rmse train", rmse_train)
-
     y_pred_test = pipeline.predict(X_test)
-    rmse_test = root_mean_squared_error(y_test, y_pred_test)
-    mlflow.log_metric("rmse test", rmse_test)
 
-    mlflow.sklearn.log_model(pipeline, "model")
+    metrics = {
+        "rmse_train": root_mean_squared_error(y_train, y_pred_train),
+        "rmse_test": root_mean_squared_error(y_test, y_pred_test),
+        "rows_after_filtering": len(df_processed),
+    }
+    return pipeline, metrics
 
-    run_id = run.info.run_id
-    model_uri = f"runs:/{run_id}/model"
-    mlflow.register_model(model_uri=model_uri, name=model_name)
+
+def configure_mlflow():
+    tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
+    if tracking_uri:
+        mlflow.set_tracking_uri(tracking_uri)
+    mlflow.set_experiment("green-taxi-trip-duration-xgb")
 
 
-if cml_run:
-    with open("metrics.txt", "w") as f:
-        f.write(f"RMSE on the Train Set: {rmse_train}")
-        f.write(f"RMSE on the Test Set: {rmse_test}")
+def log_model(pipeline, metrics):
+    with mlflow.start_run():
+        mlflow.set_tags(
+            {
+                "model": "xgboost pipeline",
+                "developer": "<your-name>",
+                "dataset": "green-taxi",
+                "features": ",".join(FEATURES),
+                "target": TARGET,
+            }
+        )
+        mlflow.log_metrics(metrics)
+        mlflow.sklearn.log_model(
+            pipeline,
+            name="model",
+            registered_model_name=MODEL_NAME,
+            serialization_format="skops",
+            skops_trusted_types=[
+                "xgboost.core.Booster",
+                "xgboost.sklearn.XGBRegressor",
+            ],
+        )
+
+
+def write_cml_metrics(metrics):
+    Path("metrics.txt").write_text(
+        "\n".join(
+            [
+                "# Training Metrics",
+                "",
+                f"- RMSE on the train set: {metrics['rmse_train']:.4f}",
+                f"- RMSE on the test set: {metrics['rmse_test']:.4f}",
+                f"- Rows after filtering: {metrics['rows_after_filtering']}",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+
+@click.command()
+@click.option(
+    "--cml-run/--no-cml-run",
+    default=False,
+    help="Write metrics.txt for a CML pull-request report.",
+)
+def main(cml_run):
+    """Train a Green Taxi trip-duration model."""
+    df = load_taxi_data()
+    configure_mlflow()
+
+    pipeline, metrics = train_model(df)
+    log_model(pipeline, metrics)
+
+    if cml_run:
+        write_cml_metrics(metrics)
+
+
+if __name__ == "__main__":
+    main()
