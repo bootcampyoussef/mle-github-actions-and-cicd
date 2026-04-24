@@ -1,0 +1,96 @@
+# CI Review and Troubleshooting
+
+A CI workflow is useful only if reviewers know how to read it. This lesson focuses on the review step: inspect a pull request, understand a CML metrics comment, and debug common failures without guessing.
+
+Use this after you have opened a pull request that runs the CML workflow.
+
+## Review Workflow
+
+```mermaid
+flowchart TD
+    A["Open pull request"] --> B["GitHub Actions runs CML workflow"]
+    B --> C{"Workflow passed?"}
+    C -->|No| D["Read failing step logs"]
+    D --> E["Fix branch and push again"]
+    E --> B
+    C -->|Yes| F["Read CML metrics comment"]
+    F --> G{"Metrics acceptable?"}
+    G -->|No| H["Investigate code, data, or model change"]
+    G -->|Yes| I["Review code and merge when ready"]
+```
+
+## Start With the Pull Request
+
+In the pull request, check these areas in order:
+
+1. **Conversation**: look for the CML metrics comment.
+2. **Checks**: confirm the CML workflow passed.
+3. **Files changed**: connect metric changes to code, workflow, or documentation changes.
+4. **Commits**: confirm fixes were added as new commits instead of rewriting context during review.
+
+This order keeps the review grounded: first confirm the automation result, then inspect the diff that produced it.
+
+## Read the CML Comment
+
+The expected report is short:
+
+```text
+# Training Metrics
+
+- RMSE on the train set: 4.7306
+- RMSE on the test set: 5.0584
+- Rows after filtering: 46307
+```
+
+Use the comment as a review signal:
+
+| Question | Why it matters |
+| --- | --- |
+| Did the workflow finish? | A missing CML comment usually means the workflow failed before reporting. |
+| Are train and test RMSE close? | A large gap can point to overfitting or a data split issue. |
+| Did the row count change? | A changed count can reveal a data URL, filtering, or preprocessing change. |
+| Does the metric change match the diff? | A model-code change should explain a metric movement. A docs-only change should not. |
+
+## Debug Common Failures
+
+| Symptom | Where to look first | Likely fix |
+| --- | --- | --- |
+| Data download fails | `curl` step in the workflow log | Check the URL and rerun the workflow. |
+| Dependency install fails | `python -m pip install -r requirements.txt` step | Fix the pinned package version or Python compatibility. |
+| Training fails with missing data | Training step log | Confirm the workflow downloads the parquet before running `src/train.py`. |
+| CML does not comment | Final `cml comment create report.md` step | Check `REPO_TOKEN` and workflow `permissions`. |
+| Metrics look unexpectedly different | CML comment and `src/train.py` diff | Review preprocessing, features, model settings, and data month. |
+
+## Local Reproduction
+
+When a workflow fails, reproduce the same core steps locally before changing the workflow:
+
+```bash
+python -m pip install -r requirements.txt
+mkdir -p data
+curl -L --fail -o data/green_tripdata_2025-01.parquet \
+  https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_2025-01.parquet
+export MLFLOW_TRACKING_URI="sqlite:///mlflow.db"
+python src/train.py --cml-run
+cat metrics.txt
+```
+
+If the local command fails the same way, fix the Python code or dependency setup first. If the local command works but GitHub Actions fails, inspect the workflow environment, permissions, and shell commands.
+
+## Decide Whether to Merge
+
+A passing workflow is not the same as a good change. Use this decision table:
+
+| Situation | Review decision |
+| --- | --- |
+| Workflow fails | Do not merge. Read logs and fix the branch. |
+| Workflow passes and metrics are stable | Continue with normal code review. |
+| Workflow passes but test RMSE increases | Ask whether the change explains the metric movement. |
+| Workflow passes but row count changes | Confirm the data source or filter change was intentional. |
+| Docs-only PR changes metrics | Investigate. Documentation changes should not retrain differently. |
+
+## Practice
+
+- Open a pull request with a small `n_estimators` change and compare the CML comment.
+- Break the data URL on a temporary branch, read the failing workflow log, then restore it.
+- Review a docs-only pull request and confirm that the workflow behavior remains unchanged.

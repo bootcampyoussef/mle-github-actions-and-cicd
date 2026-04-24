@@ -8,7 +8,8 @@ This repository teaches how GitHub Actions, DVC, and CML fit into a small machin
 flowchart LR
     A["1. GitHub Actions"] --> B["2. DVC data versioning"]
     B --> C["3. CML pull-request report"]
-    C --> D["Review metrics before merge"]
+    C --> D["4. MLflow tracking"]
+    D --> E["5. CI review and troubleshooting"]
 ```
 
 | Step | File | What you practice |
@@ -16,6 +17,8 @@ flowchart LR
 | 1 | [01-intro-github-actions.md](01-intro-github-actions.md) | Create a pull-request workflow, run tests, and protect `main`. |
 | 2 | [02-intro-to-dvc.md](02-intro-to-dvc.md) | Track a Green Taxi parquet file with DVC and push it to a local DVC remote. |
 | 3 | [03-cicd-workflow-with-cml.md](03-cicd-workflow-with-cml.md) | Download data inside GitHub Actions, train the model, and post metrics with CML. |
+| 4 | [04-mlflow-model-tracking.md](04-mlflow-model-tracking.md) | Inspect local MLflow experiments, metrics, tags, and registered model versions. |
+| 5 | [05-ci-review-and-troubleshooting.md](05-ci-review-and-troubleshooting.md) | Read CI logs, interpret CML comments, and decide whether a model change is merge-ready. |
 
 ## Local First
 
@@ -33,6 +36,8 @@ flowchart TD
     C --> D["Write metrics.txt"]
     C --> E["Register model in mlflow.db"]
     D --> F["CML comments on pull request"]
+    E --> G["Inspect runs in MLflow UI"]
+    F --> H["Review metrics before merge"]
 ```
 
 ## Mermaid Diagrams
@@ -119,6 +124,14 @@ The local training run creates generated files that are ignored by Git:
 | `mlflow.db` | Local MLflow tracking and model registry database. |
 | `metrics.txt` | Short report consumed by CML. |
 
+To inspect the tracked experiment locally, start the MLflow UI after one training run:
+
+```bash
+mlflow ui --backend-store-uri sqlite:///mlflow.db
+```
+
+Then open the local URL printed by MLflow, usually `http://127.0.0.1:5000`.
+
 ## Clean Run Checklist
 
 From a fresh clone, you should be able to run this local path without external credentials:
@@ -129,6 +142,7 @@ From a fresh clone, you should be able to run this local path without external c
 4. Run `python src/train.py --cml-run` with `MLFLOW_TRACKING_URI="sqlite:///mlflow.db"`.
 5. Confirm `metrics.txt` contains train RMSE, test RMSE, and the number of rows after filtering.
 6. Optional: follow the DVC lesson to push the parquet file into `../dvc-local-remote`.
+7. Optional: open the MLflow UI and inspect the latest training run.
 
 The CML pull-request comment runs in GitHub Actions with the built-in `GITHUB_TOKEN`; no extra credentials are required for the local-first workflow.
 
@@ -142,10 +156,13 @@ By the end of the repo, you should be able to:
 - use DVC metadata to version a large ML dataset without committing the data file;
 - connect DVC to a local remote directory;
 - run a CML workflow that trains a model and comments metrics on a pull request;
-- explain how CML uses GitHub's built-in token to comment on a pull request.
+- inspect local MLflow runs, metrics, tags, and registered model versions;
+- explain how CML uses GitHub's built-in token to comment on a pull request;
+- troubleshoot failed CI runs and decide whether metric changes are merge-ready.
 
 ## Practice Tasks
 
 - Add one more pytest check to the first GitHub Actions exercise and confirm the pull-request check still passes.
 - After adding the taxi data with DVC, inspect the generated `.dvc` file and explain which fields Git tracks.
 - Run `src/train.py --cml-run` locally and compare the generated `metrics.txt` with the CML report in a pull request.
+- Open the MLflow UI and compare two runs after changing one model parameter.
