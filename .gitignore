@@ -163,4 +163,5 @@ data/*.parquet
 metrics.txt
 report.md
 mlruns/
+mlartifacts/
 mlflow.db*

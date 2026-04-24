@@ -45,6 +45,12 @@ mlflow ui --backend-store-uri sqlite:///mlflow.db
 
 Open the URL printed by MLflow, usually `http://127.0.0.1:5000`.
 
+If port `5000` is already in use, choose another local port:
+
+```bash
+mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5001
+```
+
 In the UI, inspect:
 
 - the `green-taxi-trip-duration-xgb` experiment;
@@ -84,6 +90,7 @@ MLflow creates local artifacts that should stay out of Git:
 | `mlflow.db` | SQLite database for local experiment tracking and model registry metadata. |
 | `mlflow.db-shm` and `mlflow.db-wal` | SQLite helper files that can appear while the database is active. |
 | `mlruns/` | Local file-based artifact directory used by MLflow for run artifacts. |
+| `mlartifacts/` | Local artifact-serving directory that can appear when using the MLflow UI. |
 | `metrics.txt` | Short CML-ready metrics report produced by `--cml-run`. |
 
 These files are ignored because they are generated outputs. Commit code, workflow files, and documentation; do not commit local tracking databases.

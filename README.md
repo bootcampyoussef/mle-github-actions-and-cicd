@@ -122,6 +122,8 @@ The local training run creates generated files that are ignored by Git:
 | --- | --- |
 | `data/green_tripdata_2025-01.parquet` | Raw taxi data used for training. |
 | `mlflow.db` | Local MLflow tracking and model registry database. |
+| `mlruns/` | Local MLflow run artifacts. |
+| `mlartifacts/` | Local MLflow artifact-serving directory that can appear when using the UI. |
 | `metrics.txt` | Short report consumed by CML. |
 
 To inspect the tracked experiment locally, start the MLflow UI after one training run:

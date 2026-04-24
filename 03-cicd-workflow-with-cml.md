@@ -84,17 +84,27 @@ jobs:
 
       - uses: iterative/setup-cml@v2.0.1
 
-      - name: Train model and publish report
-        env:
-          MLFLOW_TRACKING_URI: sqlite:///mlflow.db
-          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
+
+      - name: Download taxi data
+        run: |
           mkdir -p data
           curl -L --fail -o data/green_tripdata_2025-01.parquet \
             https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_2025-01.parquet
+
+      - name: Train model
+        env:
+          MLFLOW_TRACKING_URI: sqlite:///mlflow.db
+        run: |
           python src/train.py --cml-run
+
+      - name: Publish CML report
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
           cat metrics.txt >> report.md
           cml comment create report.md
 ```
@@ -102,6 +112,8 @@ jobs:
 The workflow uses the built-in `GITHUB_TOKEN` through `REPO_TOKEN`, which CML uses to post the pull-request comment. You do not need to configure extra credentials for this local-first version.
 
 The `permissions` block keeps the token scoped to what this exercise needs: read the repository contents and write the CML report back to the pull request.
+
+The workflow uses separate named steps for dependency installation, data download, training, and reporting. That makes failures easier to locate in the GitHub Actions log.
 
 The `timeout-minutes` setting keeps the pull-request check bounded. If the data download, dependency installation, or training step hangs, GitHub stops the job and surfaces the failure in the pull request.
 

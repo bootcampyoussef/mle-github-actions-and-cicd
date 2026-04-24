@@ -55,13 +55,21 @@ Use the comment as a review signal:
 
 | Symptom | Where to look first | Likely fix |
 | --- | --- | --- |
-| Data download fails | `curl` step in the workflow log | Check the URL and rerun the workflow. |
-| Dependency install fails | `python -m pip install -r requirements.txt` step | Fix the pinned package version or Python compatibility. |
-| Training fails with missing data | Training step log | Confirm the workflow downloads the parquet before running `src/train.py`. |
-| CML does not comment | Final `cml comment create report.md` step | Check `REPO_TOKEN` and workflow `permissions`. |
+| Data download fails | `Download taxi data` step | Check the URL and rerun the workflow. |
+| Dependency install fails | `Install dependencies` step | Fix the pinned package version or Python compatibility. |
+| Training fails with missing data | `Train model` step | Confirm the workflow downloads the parquet before running `src/train.py`. |
+| CML does not comment | `Publish CML report` step | Check `REPO_TOKEN` and workflow `permissions`. |
 | Metrics look unexpectedly different | CML comment and `src/train.py` diff | Review preprocessing, features, model settings, and data month. |
 
 ## Local Reproduction
+
+```mermaid
+flowchart LR
+    A["Workflow failure"] --> B["Run the same commands locally"]
+    B --> C{"Same failure locally?"}
+    C -->|Yes| D["Fix Python code, data setup, or requirements"]
+    C -->|No| E["Inspect GitHub Actions environment and permissions"]
+```
 
 When a workflow fails, reproduce the same core steps locally before changing the workflow:
 
