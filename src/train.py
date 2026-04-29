@@ -20,8 +20,8 @@ MODEL_NAME = "green-taxi-trip-duration-xgb"
 def load_taxi_data():
     if not DATA_PATH.exists():
         raise click.ClickException(
-            f"Missing {DATA_PATH}. Download the taxi parquet file with the "
-            "command in the README Data Setup section before training."
+            f"Missing {DATA_PATH}. Download the taxi Parquet file with the "
+            "command in 02-intro-to-dvc.md before training."
         )
     return pd.read_parquet(DATA_PATH)
 
@@ -31,7 +31,7 @@ def calculate_trip_duration_in_minutes(df):
     df[TARGET] = (
         df["lpep_dropoff_datetime"] - df["lpep_pickup_datetime"]
     ).dt.total_seconds() / 60
-    # Keep a realistic training range and remove obvious trip-duration outliers.
+    # Keep a realistic training range and remove obvious trip duration outliers.
     return df[(df[TARGET] >= 1) & (df[TARGET] <= 60)]
 
 
@@ -124,10 +124,10 @@ def write_cml_metrics(metrics):
 @click.option(
     "--cml-run/--no-cml-run",
     default=False,
-    help="Write metrics.txt for a CML pull-request report.",
+    help="Write metrics.txt for a CML pull request report.",
 )
 def main(cml_run):
-    """Train a Green Taxi trip-duration model."""
+    """Train a Green Taxi trip duration model."""
     df = load_taxi_data()
     configure_mlflow()
 

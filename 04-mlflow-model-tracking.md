@@ -2,9 +2,7 @@
 
 MLflow records what happened during a training run: parameters, metrics, tags, and model artifacts. In this repository, MLflow runs locally with a SQLite database, so you can inspect model tracking without setting up any external service.
 
-Use this lesson after you have run the training script once with the Green Taxi parquet file in `data/`.
-
-## Local Tracking Workflow
+## Local tracking workflow
 
 ```mermaid
 flowchart TD
@@ -17,16 +15,18 @@ flowchart TD
     E --> F
 ```
 
-## Run a Tracked Training Job
+## Run a tracked training job
 
-Set the MLflow tracking URI to a local SQLite database, then run the training script:
+If you have not done it already in step `03`, set the MLflow tracking URI to a local SQLite database and then run the training script:
+
+`macOS` / `Linux` / `Git Bash`:
 
 ```bash
 export MLFLOW_TRACKING_URI="sqlite:///mlflow.db"
 python src/train.py --cml-run
 ```
 
-On Windows PowerShell, use:
+`PowerShell`:
 
 ```powershell
 $env:MLFLOW_TRACKING_URI = "sqlite:///mlflow.db"
@@ -43,7 +43,7 @@ Start the local UI:
 mlflow ui --backend-store-uri sqlite:///mlflow.db
 ```
 
-Open the URL printed by MLflow, usually `http://127.0.0.1:5000`.
+Open the URL printed by MLflow, usually <http://127.0.0.1:5000>.
 
 If port `5000` is already in use, choose another local port:
 
@@ -53,35 +53,44 @@ mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5001
 
 In the UI, inspect:
 
-- the `green-taxi-trip-duration-xgb` experiment;
-- the latest run;
-- the `rmse_train`, `rmse_test`, and `rows_after_filtering` metrics;
-- the run tags describing the dataset, target, and feature set;
+- the `green-taxi-trip-duration-xgb` experiment,
+- the latest run,
+- the `rmse_train`, `rmse_test` and `rows_after_filtering` metrics,
+- the run tags describing the dataset, target and feature set,
 - the registered model named `green-taxi-trip-duration-xgb`.
 
-Stop the UI with `Ctrl+C` when you are done.
-
-## What to Look For
+## What to look for
 
 | Signal | Healthy result | Possible issue |
 | --- | --- | --- |
 | `rmse_train` and `rmse_test` | Values are close to each other. | Test error is much higher, suggesting overfitting. |
-| `rows_after_filtering` | Similar to the expected row count from the clean run. | Data file, filters, or input month may have changed. |
+| `rows_after_filtering` | Matches the expected filtered row count for the dataset and filters used. | Data file, filters, or input month may have changed. |
 | Model version | A new version appears after each tracked run. | MLflow registry did not receive the logged model. |
-| Tags | Dataset, target, and feature information are present. | The run is harder to interpret during review. |
+| Tags | Dataset, target and feature information are present. | The run is harder to interpret during review. |
 
-## Compare Two Runs
+## Compare two runs
 
-Change one small training setting, such as `n_estimators`, then rerun:
+Change one small training setting, such as `n_estimators`, then open a new terminal and rerun the training script:
+
+`macOS` / `Linux` / `Git Bash`:
 
 ```bash
 export MLFLOW_TRACKING_URI="sqlite:///mlflow.db"
 python src/train.py --cml-run
 ```
 
-Open the MLflow UI again and compare the two latest runs. The goal is not to chase the best metric immediately; the goal is to practice connecting a code change to a tracked result.
+`PowerShell`:
 
-## Generated Files
+```powershell
+$env:MLFLOW_TRACKING_URI = "sqlite:///mlflow.db"
+python src/train.py --cml-run
+```
+
+Refresh the MLflow UI and compare the two latest runs. The goal is not to chase the best metric immediately, but to practice connecting a code change to a tracked result.
+
+You can stop the UI in the running terminal with `Ctrl + C` when you are done.
+
+## Generated files
 
 MLflow creates local artifacts that should stay out of Git:
 
@@ -94,9 +103,3 @@ MLflow creates local artifacts that should stay out of Git:
 | `metrics.txt` | Short CML-ready metrics report produced by `--cml-run`. |
 
 These files are ignored because they are generated outputs. Commit code, workflow files, and documentation; do not commit local tracking databases.
-
-## Practice
-
-- Run the training script twice and identify the two runs in the MLflow UI.
-- Change one model parameter, rerun training, and compare the metric table.
-- Explain why `mlflow.db` is useful locally but should not be committed to Git.
