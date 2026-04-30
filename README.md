@@ -1,63 +1,96 @@
-# GitHub Actions and CI/CD
+# GitHub Actions and CI/CD for Machine Learning
 
-In this repository you will learn about GitHub Actions and CI/CD. CI/CD stands for Continuous Integration and Continuous Delivery/Deployment. It is a set of practices that automates the process of building, testing and deploying software. It is a way to automate the software development process. And can also be used in Machine Learning. 
+This repository shows how GitHub Actions, DVC and CML fit into a small machine learning CI/CD workflow. The goal is to help you move from a simple pull request test to a reproducible ML workflow that tracks data with DVC, trains a model, and publishes metrics back to a pull request.
 
-## What is GitHub Actions?
+## Learning Path
 
-GitHub Actions is a powerful CI/CD tool provided by GitHub. It allows you to define custom workflows using YAML syntax, which can be triggered by various events in your GitHub repository such as code pushes, pull requests or scheduled intervals. It provides a wide range of pre-built actions and allows you to create your own custom actions to automate specific tasks.
+| Step | File | What you practice |
+| --- | --- | --- |
+| 1 | [01-intro-github-actions.md](01-intro-github-actions.md) | Create a pull request workflow, run tests and protect `main`. |
+| 2 | [02-intro-to-dvc.md](02-intro-to-dvc.md) | Track a Green Taxi parquet file with DVC and push it to a local DVC remote. |
+| 3 | [03-cicd-workflow-with-cml.md](03-cicd-workflow-with-cml.md) | Download data inside GitHub Actions, train the model and post metrics with CML. |
+| 4 | [04-mlflow-model-tracking.md](04-mlflow-model-tracking.md) | Inspect local MLflow experiments, metrics, tags, and registered model versions. |
+| 5 | [05-ci-review-and-troubleshooting.md](05-ci-review-and-troubleshooting.md) | Read CI logs, interpret CML comments, and decide whether a model change is merge-ready. |
 
-## Learning Objectives
+## Local-First
 
-- Learn about GitHub Actions
-- Learn about CI/CD in Machine Learning
-- Learn about DVC (Data Version Control)
-- Learn about CML (Continuous Machine Learning)
+This repository is designed to run locally. The main path needs only:
 
-## Setup
+- a Python virtual environment,
+- the January 2025 Green Taxi parquet file downloaded into `data/`,
+- a local SQLite-backed MLflow store,
+- an optional local DVC remote directory when practicing DVC.
 
-### Google Cloud SDK
-You need the Google Cloud SDK installed and configured. If you don't have it installed follow the instructions [here](https://cloud.google.com/sdk/docs/install) or use:
-
-#### **`macOS`**
-```bash
-brew install --cask google-cloud-sdk
+```mermaid
+flowchart TD
+    A["Download parquet<br>into data/"] --> B["Track metadata with DVC"]
+    A --> C["Train model locally"]
+    C --> D["Write metrics.txt"]
+    C --> E["Register model<br>in mlflow.db"]
+    D --> F["CML comments on<br>pull request"]
+    E --> G["Inspect runs<br>in MLflow UI"]
+    F --> H["Review metrics<br>before merge"]
 ```
 
-#### **`WindowsOS`**
-```PowerShell
-choco install googlecloudsdk -y
-```
+## Mermaid Diagrams
 
-### Environment
+This repository contains Mermaid diagrams. If you want them to render in VS Code, we recommend installing the `Markdown Preview Mermaid Support` extension:
 
-Please make sure you have forked the repo and set up a new virtual environment. For this purpose you can use the following commands:
+- [Install in VS Code](vscode:extension/bierner.markdown-mermaid)
+- [View on Marketplace](https://marketplace.visualstudio.com/items?itemName=bierner.markdown-mermaid)
+
+## Environment
+
+Please make sure you **use this repository as a template** and set up a new virtual environment. You can use the following commands:
 
 ### **`macOS`**
 
-```BASH
-  pyenv local 3.11.3
-  python -m venv .venv
-  source .venv/bin/activate
-  pip install --upgrade pip
-  pip install -r requirements.txt
-  ```
+```bash
+pyenv local 3.11.3
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
 
-### **`WindowsOS`**
+### **`Windows`**
 
- For `PowerShell` CLI :
-  ```PowerShell
-  pyenv local 3.11.3
-  python -m venv .venv
-  .venv\Scripts\Activate.ps1
-  python -m pip install --upgrade pip
-  pip install -r requirements.txt
-  ```
+For `PowerShell` CLI:
 
-  For `Git-Bash` CLI :
-  ```BASH
-  pyenv local 3.11.3
-  python -m venv .venv
-  source .venv/Scripts/activate
-  python -m pip install --upgrade pip
-  pip install -r requirements.txt
-  ```
+```PowerShell
+pyenv local 3.11.3
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+For `Git-Bash` CLI:
+
+```bash
+pyenv local 3.11.3
+python -m venv .venv
+source .venv/Scripts/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+## Setup
+
+On macOS, XGBoost also needs the OpenMP runtime:
+
+```bash
+brew install libomp
+```
+
+## Learning Objectives
+
+By the end of this repository, you should be able to:
+
+- Create a GitHub Actions workflow that runs on pull requests.
+- Protect `main` with review and status check requirements.
+- Use DVC metadata to version a large ML dataset without committing the data file.
+- Connect DVC to a local remote directory.
+- Run a CML workflow that trains a model and comments metrics on a pull request.
+- Inspect local MLflow runs, metrics, tags, and registered model versions.
+- Troubleshoot failed CI runs and decide whether metric changes are merge-ready.

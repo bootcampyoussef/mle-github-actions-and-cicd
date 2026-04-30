@@ -1,90 +1,134 @@
 # Intro to Data Version Control (DVC)
 
-[**DVC**](https://dvc.org/) is a tool for **data versioning**, **data pipelines**, and **reproducibility**. It is naming itself open-source, Git-based data science. It is developed by _iterative.ai_. 
+[DVC](https://dvc.org/) brings version control workflows to data and model artifacts. While Git tracks code and small metadata files, DVC stores large files in a cache or remote storage location.
 
-## Basic uses of DVC
+In this lesson, you will track one Parquet dataset with DVC and push the actual data file to a local DVC remote directory.
 
-DVC is used to organize your data and your code. It is a tool to version your data and your code, NOT your models (for this you can use MLflow).
+## Why DVC helps
 
-You can use it to:
-- **track and save data** the same way you capture code
-- **compare model metrics** among experiments
-- **adopt engineering tools and best practices** in data science projects
+Machine learning projects change in two dimensions: code changes and data changes. Git handles code well, but large data files do not belong in Git history. DVC keeps a small `.dvc` metadata file in Git so a teammate or CI workflow can recover the exact data version later.
 
-## Data versioning
+You can use DVC to:
 
-DVC lets you capture the versions of your data and models in **Git commits** while storing them on-premises or in cloud storage, although it is not a storage solution. DVC also enables **cross-project reusability** of these data artifacts. This means that your projects can depend on data from other repositories — like a package management system for data science.
+- track large data files without committing them to Git,
+- restore the same dataset version on another machine,
+- compare metrics across experiments,
+- define reproducible data processing pipelines.
 
-Let's try it out. We will use the Green Taxi data for January 2025:
+## Data versioning workflow
 
-```bash
-wget -P ./data https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_2025-01.parquet
+```mermaid
+flowchart LR
+    A["Download data"] --> B["dvc add data file"]
+    B --> C["git add .dvc<br>metadata"]
+    C --> D["dvc push<br>to local remote"]
+    D --> E["Teammate or CI<br>runs dvc pull"]
 ```
 
-Now we have to **initialize the DVC repository**:
+## Track the taxi dataset
+
+Download the Green Taxi data for January 2025:
+
+`macOS` / `Linux` / `Git Bash`:
+
+```bash
+mkdir -p data
+curl -L --fail -o data/green_tripdata_2025-01.parquet \
+  https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_2025-01.parquet
+```
+
+`PowerShell`:
+
+```powershell
+New-Item -ItemType Directory -Force data
+curl.exe -L --fail -o data\green_tripdata_2025-01.parquet `
+  https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_2025-01.parquet
+```
+
+Initialize DVC in the repository:
 
 ```bash
 dvc init
 ```
 
-This will create a `.dvc` folder. 
-
-You can add the local data to the DVC repository like this:
+Add the local data file to DVC:
 
 ```bash
 dvc add ./data/green_tripdata_2025-01.parquet
 ```
 
-DVC stores information about the added file in a `.dvc` file named `data/green_tripdata_2025-01.parquet.dvc`. This small, human-readable **metadata file** acts as a placeholder for the original data for the purpose of Git tracking.
-
-The output will tell you what to do next:
+DVC creates a small metadata file named `data/green_tripdata_2025-01.parquet.dvc`. Add that file to Git:
 
 ```bash
-git add data/green_tripdata_2025-01.parquet.dvc
+git add .dvc/.gitignore .dvc/config .dvcignore data/green_tripdata_2025-01.parquet.dvc
+git commit -m "Track taxi data with DVC"
 ```
 
-Now we can commit the changes:
+The Parquet file itself stays out of Git. The `.dvc` file records enough information for DVC to find and verify the file through its cache or remote.
+
+## Add a local remote
+
+Create a directory outside the repository to act as the DVC remote:
+
+`macOS` / `Linux` / `Git Bash`:
 
 ```bash
-git commit -m "Add data"
+mkdir -p ../dvc-local-remote
 ```
 
-But we want to add a **remote storage**. We will use Google Cloud Storage (GCS) for this (you can use any other storage provider like AWS S3 or Azure Blob Storage). First create a **new bucket** in GCS. Then create a **service account** (with `Storage Admin` and `Storage Object Admin` roles) and download the JSON file. Then we can add the remote storage:
+`PowerShell`:
 
+```powershell
+New-Item -ItemType Directory -Force ../dvc-local-remote
+```
+
+Add that directory as the default DVC remote:
 
 ```bash
-dvc remote add -d myremote gs://<bucket-name>/
+dvc remote add -d localremote ../dvc-local-remote
 ```
 
-And because we need to authenticate with GCS we need to add the credentials:
+Commit the shared remote configuration:
 
 ```bash
-dvc remote modify --local myremote \
-                    credentialpath 'path/to/project-XXX.json'
-```
-And commit the changes:
-
-```bash
-git commit .dvc/config  -m "Add remote storage"
+git add .dvc/config
+git commit -m "Add local DVC remote"
 ```
 
-And now you can **push the data** to the remote storage:
+Push the data file to the local remote:
 
 ```bash
 dvc push
 ```
 
-You can now share the repository with your colleagues. They can clone the repository and **pull the data** from the remote storage with (of course they need to authenticate with GCS):
+Now another team member or a GitHub Actions workflow can clone the repository and recover the data with:
 
 ```bash
 dvc pull
 ```
 
-So in the end you only add the `.dvc` files to git and the data is stored in the remote storage and is still accessible for everyone. And if changes are made to the data you can just push and commit the changes to the remote storage and everyone can pull the changes.
+Because this is a local-first setup, the remote is just another directory on your machine. For team projects, you can later replace it with shared storage after the DVC workflow is clear.
 
+When you clone the repository into another folder on the same machine, `dvc pull` can recover the Parquet file as long as the configured local remote path still points to the directory where you ran `dvc push`.
+
+| File or directory | Commit to Git? | Why |
+| --- | --- | --- |
+| `data/green_tripdata_2025-01.parquet` | No | It is the large raw data file. |
+| `data/green_tripdata_2025-01.parquet.dvc` | Yes | It is the small metadata pointer DVC uses to recover the data. |
+| `.dvc/config` | Yes | It stores the shared local remote path for the exercise. |
+| `../dvc-local-remote/` | No | It is the local storage area for DVC objects. |
+
+## Inspect the metadata
+
+Open `data/green_tripdata_2025-01.parquet.dvc` after running `dvc add`. Notice that Git tracks metadata such as the file path, hash and size, not the full Parquet contents. This is the key handoff between Git and DVC.
 
 ## Pipelines
 
-Versioning large data files and directories for data science is powerful, but often not enough. Data needs to be filtered, cleaned, and transformed before training ML models - for that purpose DVC introduces a **build system** to define, execute and track **data pipelines** — a series of **data processing stages**, that produce a final result.
+DVC can also define data pipelines for filtering, feature engineering, and model training. A pipeline records commands, dependencies, outputs and metrics so the work can be reproduced. This repository only uses DVC data versioning, but the next natural step is the [DVC data pipelines guide](https://dvc.org/doc/start/data-pipelines).
 
-If you want to read more about pipelines you can read the [documentation](https://dvc.org/doc/start/data-pipelines). We will not go into detail here.
+## Exercise
+
+- Inspect the generated `.dvc` file and explain which fields Git tracks.
+- Run `dvc status` before and after changing the local Parquet file.
+- After `dvc push`, inspect `../dvc-local-remote` and confirm DVC stored the data object there.
+- Clone your fork into a separate folder, configure the same local remote path and test `dvc pull`.
