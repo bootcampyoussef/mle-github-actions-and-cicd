@@ -43,7 +43,7 @@ This repository contains Mermaid diagrams. If you want them to render in VS Code
 
 Please make sure you **use this repository as a template** and set up a new virtual environment. You can use the following commands:
 
-### **`macOS`**
+### **`macOS`** / **`Linux`**
 
 ```bash
 pyenv local 3.11.3
