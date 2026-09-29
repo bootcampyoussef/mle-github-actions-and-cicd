@@ -10,7 +10,6 @@ from sklearn.metrics import root_mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
 
-
 DATA_PATH = Path("data/green_tripdata_2025-01.parquet")
 FEATURES = ["PULocationID", "DOLocationID", "trip_distance"]
 TARGET = "trip_duration_minutes"
