@@ -23,14 +23,14 @@ If you have not done it already in step `03`, set the MLflow tracking URI to a l
 
 ```bash
 export MLFLOW_TRACKING_URI="sqlite:///mlflow.db"
-python src/train.py --cml-run
+uv run python src/train.py --cml-run
 ```
 
 `PowerShell`:
 
 ```powershell
 $env:MLFLOW_TRACKING_URI = "sqlite:///mlflow.db"
-python src/train.py --cml-run
+uv run python src/train.py --cml-run
 ```
 
 The command trains the model, writes `metrics.txt`, and stores the MLflow run in `mlflow.db`.
@@ -40,7 +40,7 @@ The command trains the model, writes `metrics.txt`, and stores the MLflow run in
 Start the local UI:
 
 ```bash
-mlflow ui --backend-store-uri sqlite:///mlflow.db
+uv run mlflow ui --backend-store-uri sqlite:///mlflow.db
 ```
 
 Open the URL printed by MLflow, usually <http://127.0.0.1:5000>.
@@ -48,7 +48,7 @@ Open the URL printed by MLflow, usually <http://127.0.0.1:5000>.
 If port `5000` is already in use, choose another local port:
 
 ```bash
-mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5001
+uv run mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5001
 ```
 
 In the UI, inspect:
@@ -76,14 +76,14 @@ Change one small training setting, such as `n_estimators`, then open a new termi
 
 ```bash
 export MLFLOW_TRACKING_URI="sqlite:///mlflow.db"
-python src/train.py --cml-run
+uv run python src/train.py --cml-run
 ```
 
 `PowerShell`:
 
 ```powershell
 $env:MLFLOW_TRACKING_URI = "sqlite:///mlflow.db"
-python src/train.py --cml-run
+uv run python src/train.py --cml-run
 ```
 
 Refresh the MLflow UI and compare the two latest runs. The goal is not to chase the best metric immediately, but to practice connecting a code change to a tracked result.

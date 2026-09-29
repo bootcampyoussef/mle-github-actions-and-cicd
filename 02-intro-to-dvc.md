@@ -48,13 +48,13 @@ curl.exe -L --fail -o data\green_tripdata_2025-01.parquet `
 Initialize DVC in the repository:
 
 ```bash
-dvc init
+uv run dvc init
 ```
 
 Add the local data file to DVC:
 
 ```bash
-dvc add ./data/green_tripdata_2025-01.parquet
+uv run dvc add ./data/green_tripdata_2025-01.parquet
 ```
 
 DVC creates a small metadata file named `data/green_tripdata_2025-01.parquet.dvc`. Add that file to Git:
@@ -85,7 +85,7 @@ New-Item -ItemType Directory -Force ../dvc-local-remote
 Add that directory as the default DVC remote:
 
 ```bash
-dvc remote add -d localremote ../dvc-local-remote
+uv run dvc remote add -d localremote ../dvc-local-remote
 ```
 
 Commit the shared remote configuration:
@@ -98,13 +98,13 @@ git commit -m "Add local DVC remote"
 Push the data file to the local remote:
 
 ```bash
-dvc push
+uv run dvc push
 ```
 
 Now another team member or a GitHub Actions workflow can clone the repository and recover the data with:
 
 ```bash
-dvc pull
+uv run dvc pull
 ```
 
 Because this is a local-first setup, the remote is just another directory on your machine. For team projects, you can later replace it with shared storage after the DVC workflow is clear.

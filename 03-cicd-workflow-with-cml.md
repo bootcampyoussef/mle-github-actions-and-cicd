@@ -40,7 +40,7 @@ Run it locally after downloading the data and configuring MLflow:
 
 ```bash
 export MLFLOW_TRACKING_URI="sqlite:///mlflow.db"
-python src/train.py --cml-run
+uv run python src/train.py --cml-run
 cat metrics.txt
 ```
 
@@ -48,7 +48,7 @@ cat metrics.txt
 
 ```powershell
 $env:MLFLOW_TRACKING_URI="sqlite:///mlflow.db"
-python src/train.py --cml-run
+uv run python src/train.py --cml-run
 Get-Content metrics.txt
 ```
 
@@ -57,8 +57,8 @@ The local clean run should produce a `metrics.txt` file shaped like this:
 ```text
 # Training Metrics
 
-- RMSE on the train set: 4.7306
-- RMSE on the test set: 5.0584
+- RMSE on the train set: 4.6850
+- RMSE on the test set: 5.0074
 - Rows after filtering: 46307
 ```
 
@@ -88,16 +88,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.11.3"
+      - uses: astral-sh/setup-uv@v7
 
       - uses: iterative/setup-cml@v2.0.1
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+        run: uv sync --locked
 
       - name: Download taxi data
         run: |
@@ -109,7 +105,7 @@ jobs:
         env:
           MLFLOW_TRACKING_URI: sqlite:///mlflow.db
         run: |
-          python src/train.py --cml-run
+          uv run python src/train.py --cml-run
 
       - name: Publish CML report
         env:

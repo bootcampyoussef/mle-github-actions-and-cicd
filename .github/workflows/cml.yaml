@@ -17,16 +17,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.11.3"
+      - uses: astral-sh/setup-uv@v7
 
       - uses: iterative/setup-cml@v2.0.1
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+        run: uv sync --locked
 
       - name: Download taxi data
         run: |
@@ -38,7 +34,7 @@ jobs:
         env:
           MLFLOW_TRACKING_URI: sqlite:///mlflow.db
         run: |
-          python src/train.py --cml-run
+          uv run python src/train.py --cml-run
 
       - name: Publish CML report
         env:
