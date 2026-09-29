@@ -84,17 +84,17 @@ flowchart TD
 7. Go to **Settings > Branches > Add classic branch protection rule** and set:
 
    - Branch name pattern: `main`
-   - Require a pull request before merging: Check
-   - Require approvals: Check
-   - Require status checks to pass before merging: Check
+   - Require a pull request before merging: **Check**
+   - Require approvals: **Check**
+   - Require status checks to pass before merging: **Check**
 
     Then click on **Create**.
 
-![GitHub branch protection rule settings](./images/protection-rule.png)
+![GitHub branch protection rule settings](./assets/01-protection-rule.png)
 
 8. Create a new branch, change the calculator or test, commit, and open a pull request into `main`. You should see the workflow start automatically.
 
-![Pull request status check running in GitHub](./images/pr-check.png)
+![Pull request status check running in GitHub](./assets/01-pr-check.png)
 
 ## Interpret the result
 
