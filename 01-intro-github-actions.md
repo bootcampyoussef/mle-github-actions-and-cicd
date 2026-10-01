@@ -18,7 +18,7 @@ flowchart TD
 
 ## Create a test workflow
 
-1. Create a new repository on GitHub.
+1. Create a new, empty repository on GitHub for this calculator exercise. Keep it separate from the ML repository you created from this template following the [README setup](README.md#setup). Lessons 2–5 use the ML repository, not the calculator repository.
 
 2. Clone the repository, `cd` into it, and set it up as a uv project with Python 3.13 and pytest:
 
@@ -88,7 +88,7 @@ flowchart TD
    - Require approvals: **Check**
    - Require status checks to pass before merging: **Check**
 
-    Then click on **Create**.
+     Then click on **Create**.
 
 ![GitHub branch protection rule settings](./assets/01-protection-rule.png)
 
