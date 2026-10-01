@@ -30,7 +30,6 @@ flowchart LR
 Download the Green Taxi data for January 2025:
 
 ```bash
-mkdir -p data
 curl -L --fail -o data/green_tripdata_2025-01.parquet \
   https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_2025-01.parquet
 ```

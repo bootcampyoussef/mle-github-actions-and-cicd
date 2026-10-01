@@ -116,7 +116,7 @@ The copied SSH URL will look like `git@github.com:<your-username>/<repo-name>.gi
 
 ### 4. Move into the Project Folder and Install Dependencies
 
-This installs all dependencies and creates a virtual environment in (`.venv/`).
+This installs all dependencies and creates a virtual environment in `.venv/`.
 
 ```bash
 cd <repo-name>
@@ -137,6 +137,33 @@ code .
 ```
 
 Every command in the walkthrough runs through `uv run`, so this environment is used automatically.
+
+## Cleanup
+
+To remove the training and MLflow outputs but keep the downloaded data and your DVC setup, run this from the project root:
+
+```bash
+rm -rf mlruns mlartifacts
+rm -f mlflow.db mlflow.db-shm mlflow.db-wal metrics.txt report.md
+```
+
+To fully reset the repository, also remove the data, the DVC files, and the local DVC remote:
+
+```bash
+rm -rf data .dvc .dvcignore ../dvc-local-remote
+mkdir data
+touch data/.gitkeep
+```
+
+If you committed the DVC files in lesson 2, commit their removal before you start again:
+
+```bash
+git add .dvc .dvcignore data
+git commit -m "Reset DVC exercise"
+```
+
+> [!CAUTION]
+> These commands permanently delete your local MLflow runs, registered model versions, and DVC remote. Run them from the project root only.
 
 ## References & Further Reading
 
