@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -73,6 +74,8 @@ def train_model(df):
 
 
 def configure_mlflow():
+    # Hide MLflow's environment-export INFO/WARNING messages; keep errors.
+    logging.getLogger("mlflow.utils").setLevel(logging.ERROR)
     tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
     if tracking_uri:
         mlflow.set_tracking_uri(tracking_uri)
