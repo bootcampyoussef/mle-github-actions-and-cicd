@@ -80,7 +80,7 @@ jobs:
 
       - uses: astral-sh/setup-uv@v7
 
-      - uses: iterative/setup-cml@v2.0.1
+      - uses: iterative/setup-cml@v2.1.0
 
       - name: Install dependencies
         run: uv sync --locked
