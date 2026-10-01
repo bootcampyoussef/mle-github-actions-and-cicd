@@ -25,19 +25,6 @@ flowchart LR
     D --> E["Teammate or CI<br>runs dvc pull"]
 ```
 
-## Return to the ML repository
-
-The calculator exercise in lesson 1 used a separate repository with pytest only. Before continuing, return to the ML repository you created from this template following the [README setup](README.md#setup).
-
-Replace `<path-to-ml-repository>` with the local path to that repository, then install its locked dependencies:
-
-```bash
-cd "<path-to-ml-repository>"
-uv sync --locked
-```
-
-This repository contains `src/train.py` and lists DVC in `pyproject.toml`. uv uses the project in the current directory, so running these commands in the calculator repository will not install DVC. Run all remaining commands in lessons 2–5 from the ML repository root; no manual environment activation is needed.
-
 ## Track the taxi dataset
 
 Download the Green Taxi data for January 2025:

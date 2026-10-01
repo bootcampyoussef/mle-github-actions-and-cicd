@@ -18,7 +18,7 @@ flowchart TD
 
 ## Create a test workflow
 
-1. Create a new, empty repository on GitHub for this calculator exercise. Keep it separate from the ML repository you created from this template following the [README setup](README.md#setup). Lessons 2–5 use the ML repository, not the calculator repository.
+1. Create a **new, empty repository** on GitHub for this exercise. It will be used in lesson 1 only. Keep it separate from the ML repository you created from this template, which will be used in lessons 2 to 5.
 
 2. Clone the repository, `cd` into it, and set it up as a uv project with Python 3.13 and pytest:
 
@@ -88,7 +88,7 @@ flowchart TD
    - Require approvals: **Check**
    - Require status checks to pass before merging: **Check**
 
-     Then click on **Create**.
+   Then click on **Create**.
 
 ![GitHub branch protection rule settings](./assets/01-protection-rule.png)
 
@@ -113,3 +113,11 @@ In a larger ML repo, this same pattern can run data validation, linting, model s
 - Add a `subtract(a, b)` function and a matching pytest test.
 - Push the branch and confirm the workflow runs again.
 - Break one assertion on purpose, observe the failure, then fix it with a new commit.
+
+## Return to the ML repository
+
+Lessons 2 to 5 run in the ML repository you created from this template, not in the calculator repository. Before continuing, move back into it:
+
+```bash
+cd <path-to-ml-repository>
+```
