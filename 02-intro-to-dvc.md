@@ -6,7 +6,7 @@ In this lesson, you will track one Parquet dataset with DVC and push the actual 
 
 ## Why DVC helps
 
-Machine learning projects change in two dimensions: code changes and data changes. Git handles code well, but large data files do not belong in Git history. DVC keeps a small `.dvc` metadata file in Git so a teammate or CI workflow can recover the exact data version later.
+Machine Learning projects change in two dimensions: code changes and data changes. Git handles code well, but large data files do not belong in Git history. DVC keeps a small `.dvc` metadata file in Git so a teammate or CI workflow can recover the exact data version later.
 
 You can use DVC to:
 
@@ -29,19 +29,8 @@ flowchart LR
 
 Download the Green Taxi data for January 2025:
 
-`macOS` / `Linux` / `Git Bash`:
-
 ```bash
-mkdir -p data
 curl -L --fail -o data/green_tripdata_2025-01.parquet \
-  https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_2025-01.parquet
-```
-
-`PowerShell`:
-
-```powershell
-New-Item -ItemType Directory -Force data
-curl.exe -L --fail -o data\green_tripdata_2025-01.parquet `
   https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_2025-01.parquet
 ```
 
@@ -70,16 +59,8 @@ The Parquet file itself stays out of Git. The `.dvc` file records enough informa
 
 Create a directory outside the repository to act as the DVC remote:
 
-`macOS` / `Linux` / `Git Bash`:
-
 ```bash
 mkdir -p ../dvc-local-remote
-```
-
-`PowerShell`:
-
-```powershell
-New-Item -ItemType Directory -Force ../dvc-local-remote
 ```
 
 Add that directory as the default DVC remote:

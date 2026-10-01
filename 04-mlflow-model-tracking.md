@@ -19,17 +19,8 @@ flowchart TD
 
 If you have not done it already in step `03`, set the MLflow tracking URI to a local SQLite database and then run the training script:
 
-`macOS` / `Linux` / `Git Bash`:
-
 ```bash
 export MLFLOW_TRACKING_URI="sqlite:///mlflow.db"
-uv run python src/train.py --cml-run
-```
-
-`PowerShell`:
-
-```powershell
-$env:MLFLOW_TRACKING_URI = "sqlite:///mlflow.db"
 uv run python src/train.py --cml-run
 ```
 
@@ -56,7 +47,7 @@ In the UI, inspect:
 - the `green-taxi-trip-duration-xgb` experiment,
 - the latest run,
 - the `rmse_train`, `rmse_test` and `rows_after_filtering` metrics,
-- the run tags describing the dataset, target and feature set,
+- the run tags describing the dataset, target, and feature set,
 - the registered model named `green-taxi-trip-duration-xgb`.
 
 ## What to look for
@@ -66,23 +57,14 @@ In the UI, inspect:
 | `rmse_train` and `rmse_test` | Values are close to each other. | Test error is much higher, suggesting overfitting. |
 | `rows_after_filtering` | Matches the expected filtered row count for the dataset and filters used. | Data file, filters, or input month may have changed. |
 | Model version | A new version appears after each tracked run. | MLflow registry did not receive the logged model. |
-| Tags | Dataset, target and feature information are present. | The run is harder to interpret during review. |
+| Tags | Dataset, target, and feature information are present. | The run is harder to interpret during review. |
 
 ## Compare two runs
 
 Change one small training setting, such as `n_estimators`, then open a new terminal and rerun the training script:
 
-`macOS` / `Linux` / `Git Bash`:
-
 ```bash
 export MLFLOW_TRACKING_URI="sqlite:///mlflow.db"
-uv run python src/train.py --cml-run
-```
-
-`PowerShell`:
-
-```powershell
-$env:MLFLOW_TRACKING_URI = "sqlite:///mlflow.db"
 uv run python src/train.py --cml-run
 ```
 

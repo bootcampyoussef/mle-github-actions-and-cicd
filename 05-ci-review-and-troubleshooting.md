@@ -57,7 +57,7 @@ Use the comment as a review signal:
 | --- | --- | --- |
 | Data download fails | `Download taxi data` step | Check the URL and rerun the workflow. |
 | Dependency install fails | `Install dependencies` step | Run `uv lock` if `uv.lock` is out of date with `pyproject.toml`, or check that the package supports Python 3.13. |
-| Training fails with missing data | `Train model` step | Confirm the workflow downloads the parquet before running `src/train.py`. |
+| Training fails with missing data | `Train model` step | Confirm the workflow downloads the Parquet before running `src/train.py`. |
 | CML does not comment | `Publish CML report` step | Check `REPO_TOKEN` and workflow `permissions`. |
 | Metrics look unexpectedly different | CML comment and `src/train.py` diff | Review preprocessing, features, model settings, and data month. |
 
@@ -73,8 +73,6 @@ flowchart LR
 
 When a workflow fails, reproduce the same core steps locally before changing the workflow:
 
-`macOS` / `Linux` / `Git Bash`:
-
 ```bash
 uv sync
 mkdir -p data
@@ -83,18 +81,6 @@ curl -L --fail -o data/green_tripdata_2025-01.parquet \
 export MLFLOW_TRACKING_URI="sqlite:///mlflow.db"
 uv run python src/train.py --cml-run
 cat metrics.txt
-```
-
-`PowerShell`:
-
-```powershell
-uv sync
-New-Item -ItemType Directory -Force data
-curl.exe -L --fail -o data\green_tripdata_2025-01.parquet `
-  https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_2025-01.parquet
-$env:MLFLOW_TRACKING_URI="sqlite:///mlflow.db"
-uv run python src/train.py --cml-run
-Get-Content metrics.txt
 ```
 
 If the local command fails the same way, fix the Python code or dependency setup first. If the local command works but GitHub Actions fails, inspect the workflow environment, permissions, and shell commands.

@@ -1,6 +1,6 @@
 # CI/CD Workflow with CML
 
-Continuous integration asks: "Can this change be merged safely?". In machine learning, that question includes code, data access, training behavior and metrics. [CML](https://cml.dev/) lets a GitHub Actions workflow post model results directly on a pull request so reviewers can inspect them before merging.
+Continuous Integration asks: "Can this change be merged safely?". In Machine Learning, that question includes code, data access, training behavior, and metrics. [CML](https://cml.dev/) lets a GitHub Actions workflow post model results directly on a pull request so reviewers can inspect them before merging.
 
 ## CI/CD in Machine Learning
 
@@ -36,20 +36,10 @@ flowchart TD
 
 Run it locally after downloading the data and configuring MLflow:
 
-`macOS` / `Linux` / `Git Bash`:
-
 ```bash
 export MLFLOW_TRACKING_URI="sqlite:///mlflow.db"
 uv run python src/train.py --cml-run
 cat metrics.txt
-```
-
-`PowerShell`:
-
-```powershell
-$env:MLFLOW_TRACKING_URI="sqlite:///mlflow.db"
-uv run python src/train.py --cml-run
-Get-Content metrics.txt
 ```
 
 The local clean run should produce a `metrics.txt` file shaped like this:
