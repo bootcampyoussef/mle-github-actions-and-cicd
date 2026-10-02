@@ -1,0 +1,13 @@
+[project]
+name = "mle-github-actions-and-cicd"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "click>=8.5.0",
+    "dvc>=3.67.1",
+    "mlflow>=3.16.1",
+    "pandas>=3.0.6",
+    "pyarrow>=25.0.1",
+    "scikit-learn>=1.9.1",
+    "xgboost>=3.4.1",
+]

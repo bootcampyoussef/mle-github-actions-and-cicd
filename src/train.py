@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -9,7 +10,6 @@ from sklearn.feature_extraction import DictVectorizer
 from sklearn.metrics import root_mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
-
 
 DATA_PATH = Path("data/green_tripdata_2025-01.parquet")
 FEATURES = ["PULocationID", "DOLocationID", "trip_distance"]
@@ -74,6 +74,8 @@ def train_model(df):
 
 
 def configure_mlflow():
+    # Hide MLflow's environment-export INFO/WARNING messages; keep errors.
+    logging.getLogger("mlflow.utils").setLevel(logging.ERROR)
     tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
     if tracking_uri:
         mlflow.set_tracking_uri(tracking_uri)

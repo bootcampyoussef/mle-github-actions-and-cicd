@@ -1,6 +1,6 @@
 # CI/CD Workflow with CML
 
-Continuous integration asks: "Can this change be merged safely?". In machine learning, that question includes code, data access, training behavior and metrics. [CML](https://cml.dev/) lets a GitHub Actions workflow post model results directly on a pull request so reviewers can inspect them before merging.
+Continuous Integration asks: "Can this change be merged safely?". In Machine Learning, that question includes code, data access, training behavior, and metrics. [CML](https://cml.dev/) lets a GitHub Actions workflow post model results directly on a pull request so reviewers can inspect them before merging.
 
 ## CI/CD in Machine Learning
 
@@ -36,20 +36,10 @@ flowchart TD
 
 Run it locally after downloading the data and configuring MLflow:
 
-`macOS` / `Linux` / `Git Bash`:
-
 ```bash
 export MLFLOW_TRACKING_URI="sqlite:///mlflow.db"
-python src/train.py --cml-run
+uv run python src/train.py --cml-run
 cat metrics.txt
-```
-
-`PowerShell`:
-
-```powershell
-$env:MLFLOW_TRACKING_URI="sqlite:///mlflow.db"
-python src/train.py --cml-run
-Get-Content metrics.txt
 ```
 
 The local clean run should produce a `metrics.txt` file shaped like this:
@@ -57,8 +47,8 @@ The local clean run should produce a `metrics.txt` file shaped like this:
 ```text
 # Training Metrics
 
-- RMSE on the train set: 4.7306
-- RMSE on the test set: 5.0584
+- RMSE on the train set: 4.6850
+- RMSE on the test set: 5.0074
 - Rows after filtering: 46307
 ```
 
@@ -88,16 +78,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.11.3"
+      - uses: astral-sh/setup-uv@v7
 
-      - uses: iterative/setup-cml@v2.0.1
+      - uses: iterative/setup-cml@v2.1.0
 
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+        run: uv sync --locked
 
       - name: Download taxi data
         run: |
@@ -109,7 +95,7 @@ jobs:
         env:
           MLFLOW_TRACKING_URI: sqlite:///mlflow.db
         run: |
-          python src/train.py --cml-run
+          uv run python src/train.py --cml-run
 
       - name: Publish CML report
         env:

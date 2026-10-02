@@ -37,8 +37,8 @@ The expected report is short:
 ```text
 # Training Metrics
 
-- RMSE on the train set: 4.7306
-- RMSE on the test set: 5.0584
+- RMSE on the train set: 4.6850
+- RMSE on the test set: 5.0074
 - Rows after filtering: 46307
 ```
 
@@ -56,8 +56,8 @@ Use the comment as a review signal:
 | Symptom | Where to look first | Likely fix |
 | --- | --- | --- |
 | Data download fails | `Download taxi data` step | Check the URL and rerun the workflow. |
-| Dependency install fails | `Install dependencies` step | Fix the pinned package version or Python compatibility. |
-| Training fails with missing data | `Train model` step | Confirm the workflow downloads the parquet before running `src/train.py`. |
+| Dependency install fails | `Install dependencies` step | Run `uv lock` if `uv.lock` is out of date with `pyproject.toml`, or check that the package supports Python 3.13. |
+| Training fails with missing data | `Train model` step | Confirm the workflow downloads the Parquet before running `src/train.py`. |
 | CML does not comment | `Publish CML report` step | Check `REPO_TOKEN` and workflow `permissions`. |
 | Metrics look unexpectedly different | CML comment and `src/train.py` diff | Review preprocessing, features, model settings, and data month. |
 
@@ -67,34 +67,20 @@ Use the comment as a review signal:
 flowchart LR
     A["Workflow<br>failure"] --> B["Run the same<br>commands locally"]
     B --> C{"Same failure locally?"}
-    C -->|Yes| D["Fix Python code, data setup, or requirements"]
+    C -->|Yes| D["Fix Python code, data setup, or dependencies"]
     C -->|No| E["Inspect GitHub Actions environment and permissions"]
 ```
 
 When a workflow fails, reproduce the same core steps locally before changing the workflow:
 
-`macOS` / `Linux` / `Git Bash`:
-
 ```bash
-python -m pip install -r requirements.txt
+uv sync
 mkdir -p data
 curl -L --fail -o data/green_tripdata_2025-01.parquet \
   https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_2025-01.parquet
 export MLFLOW_TRACKING_URI="sqlite:///mlflow.db"
-python src/train.py --cml-run
+uv run python src/train.py --cml-run
 cat metrics.txt
-```
-
-`PowerShell`:
-
-```powershell
-python -m pip install -r requirements.txt
-New-Item -ItemType Directory -Force data
-curl.exe -L --fail -o data\green_tripdata_2025-01.parquet `
-  https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_2025-01.parquet
-$env:MLFLOW_TRACKING_URI="sqlite:///mlflow.db"
-python src/train.py --cml-run
-Get-Content metrics.txt
 ```
 
 If the local command fails the same way, fix the Python code or dependency setup first. If the local command works but GitHub Actions fails, inspect the workflow environment, permissions, and shell commands.

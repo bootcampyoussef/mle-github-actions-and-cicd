@@ -6,7 +6,7 @@ In this lesson, you will track one Parquet dataset with DVC and push the actual 
 
 ## Why DVC helps
 
-Machine learning projects change in two dimensions: code changes and data changes. Git handles code well, but large data files do not belong in Git history. DVC keeps a small `.dvc` metadata file in Git so a teammate or CI workflow can recover the exact data version later.
+Machine Learning projects change in two dimensions: code changes and data changes. Git handles code well, but large data files do not belong in Git history. DVC keeps a small `.dvc` metadata file in Git so a teammate or CI workflow can recover the exact data version later.
 
 You can use DVC to:
 
@@ -29,32 +29,21 @@ flowchart LR
 
 Download the Green Taxi data for January 2025:
 
-`macOS` / `Linux` / `Git Bash`:
-
 ```bash
-mkdir -p data
 curl -L --fail -o data/green_tripdata_2025-01.parquet \
-  https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_2025-01.parquet
-```
-
-`PowerShell`:
-
-```powershell
-New-Item -ItemType Directory -Force data
-curl.exe -L --fail -o data\green_tripdata_2025-01.parquet `
   https://d37ci6vzurychx.cloudfront.net/trip-data/green_tripdata_2025-01.parquet
 ```
 
 Initialize DVC in the repository:
 
 ```bash
-dvc init
+uv run dvc init
 ```
 
 Add the local data file to DVC:
 
 ```bash
-dvc add ./data/green_tripdata_2025-01.parquet
+uv run dvc add ./data/green_tripdata_2025-01.parquet
 ```
 
 DVC creates a small metadata file named `data/green_tripdata_2025-01.parquet.dvc`. Add that file to Git:
@@ -70,22 +59,14 @@ The Parquet file itself stays out of Git. The `.dvc` file records enough informa
 
 Create a directory outside the repository to act as the DVC remote:
 
-`macOS` / `Linux` / `Git Bash`:
-
 ```bash
 mkdir -p ../dvc-local-remote
-```
-
-`PowerShell`:
-
-```powershell
-New-Item -ItemType Directory -Force ../dvc-local-remote
 ```
 
 Add that directory as the default DVC remote:
 
 ```bash
-dvc remote add -d localremote ../dvc-local-remote
+uv run dvc remote add -d localremote ../dvc-local-remote
 ```
 
 Commit the shared remote configuration:
@@ -98,18 +79,18 @@ git commit -m "Add local DVC remote"
 Push the data file to the local remote:
 
 ```bash
-dvc push
+uv run dvc push
 ```
 
 Now another team member or a GitHub Actions workflow can clone the repository and recover the data with:
 
 ```bash
-dvc pull
+uv run dvc pull
 ```
 
 Because this is a local-first setup, the remote is just another directory on your machine. For team projects, you can later replace it with shared storage after the DVC workflow is clear.
 
-When you clone the repository into another folder on the same machine, `dvc pull` can recover the Parquet file as long as the configured local remote path still points to the directory where you ran `dvc push`.
+When you clone the repository into another folder on the same machine, `uv run dvc pull` can recover the Parquet file as long as the configured local remote path still points to the directory where you ran `uv run dvc push`.
 
 | File or directory | Commit to Git? | Why |
 | --- | --- | --- |
@@ -120,7 +101,7 @@ When you clone the repository into another folder on the same machine, `dvc pull
 
 ## Inspect the metadata
 
-Open `data/green_tripdata_2025-01.parquet.dvc` after running `dvc add`. Notice that Git tracks metadata such as the file path, hash and size, not the full Parquet contents. This is the key handoff between Git and DVC.
+Open `data/green_tripdata_2025-01.parquet.dvc` after running `uv run dvc add`. Notice that Git tracks metadata such as the file path, hash and size, not the full Parquet contents. This is the key handoff between Git and DVC.
 
 ## Pipelines
 
@@ -129,6 +110,6 @@ DVC can also define data pipelines for filtering, feature engineering, and model
 ## Exercise
 
 - Inspect the generated `.dvc` file and explain which fields Git tracks.
-- Run `dvc status` before and after changing the local Parquet file.
-- After `dvc push`, inspect `../dvc-local-remote` and confirm DVC stored the data object there.
-- Clone your fork into a separate folder, configure the same local remote path and test `dvc pull`.
+- Run `uv run dvc status` before and after changing the local Parquet file.
+- After `uv run dvc push`, inspect `../dvc-local-remote` and confirm DVC stored the data object there.
+- Clone your ML repository into a separate folder, enter its root directory, configure the same local remote path and test `uv run dvc pull`.
